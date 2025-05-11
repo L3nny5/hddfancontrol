@@ -26,6 +26,7 @@ use device::Hwmon;
 use exit::ExitHook;
 use fan::Speed;
 use flexi_logger::{Duplicate, Logger, Criterion, Naming, Cleanup, Age};
+use flexi_logger::FileSpec;
 use probe::Temp;
 
 mod cl;
@@ -82,31 +83,38 @@ fn main() -> anyhow::Result<()> {
     // simple_logger::init_with_level(args.verbosity).context("Failed to init logger")?;
     // added for logging with timestamp
     let datetime_format = args.log_datetime_format.clone();
-    let mut logger = Logger::try_with_str(args.verbosity.to_string())?
-        .format(move |writer, now, record| {
+    fn make_format_fn(format: String) -> impl Fn(&mut dyn std::io::Write, &mut flexi_logger::DeferredNow, &log::Record) -> std::io::Result<()> + Send + Sync + 'static {
+        move |writer, now, record| {
             writeln!(
                 writer,
                 "[{}] [{}] {}",
-                now.format(&datetime_format),
+                now.format(&format),
                 record.level(),
                 record.args()
             )
-        })
+        }
+    }
+
+    let mut logger = Logger::try_with_str(args.verbosity.to_string())?
+        .format(make_format_fn(datetime_format))
         .duplicate_to_stdout(Duplicate::All);
+
 
     if let Some(log_file) = args.log_file.as_ref() {
         logger = logger
-            .log_to_file()
-            .directory(
-                log_file
-                    .parent()
-                    .unwrap_or_else(|| PathBuf::from(".").as_path()),
-            )
-            .basename(
-                log_file
-                    .file_name()
-                    .unwrap_or_default()
-                    .to_string_lossy(),
+            .log_to_file(
+                FileSpec::default()
+                    .directory(
+                        log_file
+                            .parent()
+                            .unwrap_or_else(|| PathBuf::from(".").as_path()),
+                    )
+                    .basename(
+                        log_file
+                            .file_name()
+                            .unwrap_or_default()
+                            .to_string_lossy(),
+                    ),
             )
             .rotate(
                 Criterion::Size(log_max_size_bytes),
