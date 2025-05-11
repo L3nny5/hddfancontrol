@@ -73,11 +73,11 @@ fn main() -> anyhow::Result<()> {
     // Validate log-max-size string and convert to bytes
     let log_max_size_bytes = humantime::parse_duration(&args.log_max_size)
         .map(|dur| dur.as_secs())
-        .or_else(|_| {
+        .map_err(|_| {
             byte_unit::Byte::from_str(&args.log_max_size)
                 .map(|b| b.get_bytes() as u64)
-        })
-        .with_context(|| format!("Invalid value for --log-max-size: {}", args.log_max_size))?;
+                .map_err(|e| anyhow::anyhow!("Invalid value for --log-max-size: {e:?}"))
+        })??;
 
     // Init logger
     // simple_logger::init_with_level(args.verbosity).context("Failed to init logger")?;
