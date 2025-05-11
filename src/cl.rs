@@ -225,6 +225,22 @@ pub(crate) enum Command {
         /// Restore fan settings on exit, otherwise the fans are run at full speed on exit.
         #[arg(short, long)]
         restore_fan_settings: bool,
+
+        /// Optional path to write logs to
+        #[arg(long)]
+        pub log_file: Option<PathBuf>,
+
+        /// Max size of a single log file (e.g., "10MB" or "1h")
+        #[arg(long, default_value = "10MB")]
+        pub log_max_size: String,
+
+        /// How many rotated logs to retain
+        #[arg(long, default_value_t = 5)]
+        pub log_retain: usize,
+
+        /// Format string for log timestamps
+        #[arg(long, env = "LOG_DATETIME_FORMAT", default_value = "%d.%m.%Y %H:%M:%S")]
+        pub log_datetime_format: String,
     },
 
     /// Test PWM to find start/stop fan values
