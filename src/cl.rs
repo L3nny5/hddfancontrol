@@ -107,6 +107,18 @@ pub(crate) struct Args {
     )]
     pub log_datetime_format: String,
 
+    /// If set, logs will also be written to this file (rotated when size exceeded)
+    #[arg(long, help = "Optional path to a logfile")]
+    pub log_file: Option<PathBuf>,
+
+    /// Max size of each log file before rotating, e.g. "10MB", "500KB"
+    #[arg(long, default_value = "10MB", help = "Maximum logfile size before rotation")]
+    pub log_max_size: String,
+
+    /// Number of rotated log files to retain
+    #[arg(long, default_value_t = 5, help = "Number of rotated logfiles to keep")]
+    pub log_retain: usize,
+
     /// Main action
     #[command(subcommand)]
     pub command: Command,

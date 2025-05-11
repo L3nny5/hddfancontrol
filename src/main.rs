@@ -9,6 +9,7 @@ use std::{
     io::Write, // added
     ops::Range,
     path::PathBuf,
+    str::FromStr,
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
@@ -18,13 +19,14 @@ use std::{
 };
 
 use anyhow::Context as _;
+use byte_unit::Byte;
+use chrono::Local;
 use clap::Parser as _;
 use device::Hwmon;
 use exit::ExitHook;
 use fan::Speed;
+use flexi_logger::{Duplicate, Logger, Criterion, Naming, Cleanup, Age};
 use probe::Temp;
-use chrono::Local;           // added for timestamped logs
-use env_logger::Builder;     // added for flexible logger config
 
 mod cl;
 mod device;
@@ -67,22 +69,53 @@ fn main() -> anyhow::Result<()> {
         anyhow::bail!("Invalid datetime format string '{}': {e:?}", args.log_datetime_format);
     }
 
+    // Validate log-max-size string and convert to bytes
+    let log_max_size_bytes = humantime::parse_duration(&args.log_max_size)
+        .map(|dur| dur.as_secs())
+        .or_else(|_| {
+            byte_unit::Byte::from_str(&args.log_max_size)
+                .map(|b| b.get_bytes() as u64)
+        })
+        .with_context(|| format!("Invalid value for --log-max-size: {}", args.log_max_size))?;
+
     // Init logger
     // simple_logger::init_with_level(args.verbosity).context("Failed to init logger")?;
     // added for logging with timestamp
     let datetime_format = args.log_datetime_format.clone();
-    Builder::new()
-        .format(move |buf, record| {
+    let mut logger = Logger::try_with_str(args.verbosity.to_string())?
+        .format(move |writer, now, record| {
             writeln!(
-                buf,
+                writer,
                 "[{}] [{}] {}",
-                Local::now().format(&datetime_format),
+                now.format(&datetime_format),
                 record.level(),
                 record.args()
             )
         })
-        .filter_level(args.verbosity.to_level_filter())
-        .init();
+        .duplicate_to_stdout(Duplicate::All);
+
+    if let Some(log_file) = args.log_file.as_ref() {
+        logger = logger
+            .log_to_file()
+            .directory(
+                log_file
+                    .parent()
+                    .unwrap_or_else(|| PathBuf::from(".").as_path()),
+            )
+            .basename(
+                log_file
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy(),
+            )
+            .rotate(
+                Criterion::Size(log_max_size_bytes),
+                Naming::Numbers,
+                Cleanup::KeepLogFiles(args.log_retain),
+            );
+    }
+
+    logger.start()?;
 
     match args.command {
         cl::Command::PwmTest { pwm } => {
