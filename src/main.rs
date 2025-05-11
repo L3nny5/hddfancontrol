@@ -123,7 +123,7 @@ fn main() -> anyhow::Result<()> {
                 now: &mut flexi_logger::DeferredNow,
                 record: &log::Record,
             ) -> std::io::Result<()> {
-                writeln!(
+                write!(
                     writer,
                     "[{}] [{}] {}",
                     now.format(&FORMAT_STRING.get().unwrap()),
