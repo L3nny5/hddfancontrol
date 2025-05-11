@@ -124,7 +124,7 @@ fn main() -> anyhow::Result<()> {
                 now: &mut flexi_logger::DeferredNow,
                 record: &log::Record,
             ) -> std::io::Result<()> {
-                writeln!(
+                write!(
                     writer,
                     "[{}] [{}] {}",
                     now.format(&FORMAT_STRING.get().unwrap()),
@@ -137,18 +137,12 @@ fn main() -> anyhow::Result<()> {
                 .format(my_format)
                 .duplicate_to_stdout(Duplicate::All);
 
-            if let Some(log_file) = args.log_file.as_ref() {
+            if let Some(log_file) = log_file {
                 let file_spec = FileSpec::default()
                     .directory(log_file.parent().unwrap_or(Path::new(".")))
-                    .basename(
-                        log_file
-                            .file_stem()
-                            .unwrap_or_default()
-                            .to_string_lossy(),
-                    )
+                    .basename(log_file.file_stem().unwrap_or_default().to_string_lossy())
                     .suffix("log")          
                     .suppress_timestamp();
-
                 logger = logger
                     .log_to_file(file_spec)
                     .rotate(
