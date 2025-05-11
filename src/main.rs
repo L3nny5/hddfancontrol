@@ -65,15 +65,11 @@ fn main() -> anyhow::Result<()> {
     // added for logging with timestamp
     Builder::new()
     .format(|buf, record| {
-        use env_logger::fmt::Color;
-        let mut style = buf.style();
-        style.set_color(Color::Green).set_bold(true);
-
         writeln!(
             buf,
             "[{}] [{}] {}",
             Local::now().format("%d.%m.%Y %H:%M:%S"),
-            style.value(record.level()),
+            record.level(),
             record.args()
         )
     })
