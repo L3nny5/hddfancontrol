@@ -6,7 +6,6 @@
 )]
 
 use std::{
-    io::Write,
     ops::Range,
     path::PathBuf,
     sync::{
@@ -16,6 +15,9 @@ use std::{
     },
     time::{Duration, Instant},
 };
+
+use std::io::Write;
+use std::path::Path;
 
 use anyhow::Context as _;
 use byte_unit::Byte;
@@ -84,7 +86,7 @@ fn main() -> anyhow::Result<()> {
     let datetime_format = args.log_datetime_format.clone();
     FORMAT_STRING.set(datetime_format.clone()).unwrap();
     fn my_format(
-        writer: &mut dyn std::io::Write,
+        writer: &mut dyn Write,
         now: &mut flexi_logger::DeferredNow,
         record: &log::Record,
     ) -> std::io::Result<()> {
@@ -109,7 +111,7 @@ fn main() -> anyhow::Result<()> {
                     .directory(
                         log_file
                             .parent()
-                            .unwrap_or_else(|| PathBuf::from(".").as_path()),
+                            .unwrap_or(Path::new(".")),
                     )
                     .basename(
                         log_file
