@@ -152,7 +152,7 @@ fn main() -> anyhow::Result<()> {
                                     .to_string_lossy(),
                             )
                             .suppress_timestamp()
-                            .discriminant("".into())
+                            .discriminant(String::new()),
                     )
                     .rotate(
                         Criterion::Size(log_max_size_bytes),
