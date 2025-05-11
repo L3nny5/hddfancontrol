@@ -151,7 +151,8 @@ fn main() -> anyhow::Result<()> {
                                     .unwrap_or_default()
                                     .to_string_lossy(),
                             )
-                            .suppress_timestamp(),
+                            .suppress_timestamp()
+                            .discriminant("".into())
                     )
                     .rotate(
                         Criterion::Size(log_max_size_bytes),
