@@ -19,7 +19,7 @@ use std::{
 };
 
 use anyhow::Context as _;
-use byte_unit::Byte;
+use byte-unit::Byte;
 use chrono::Local;
 use clap::Parser as _;
 use device::Hwmon;
@@ -74,7 +74,7 @@ fn main() -> anyhow::Result<()> {
     let log_max_size_bytes = humantime::parse_duration(&args.log_max_size)
         .map(|dur| dur.as_secs())
         .or_else(|_| {
-            byte_unit::Byte::from_str(&args.log_max_size)
+            byte-unit::Byte::from_str(&args.log_max_size)
                 .map(|b| b.get_bytes() as u64)
         })
         .with_context(|| format!("Invalid value for --log-max-size: {}", args.log_max_size))?;
