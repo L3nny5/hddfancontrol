@@ -62,7 +62,7 @@ fn main() -> anyhow::Result<()> {
 
    // Validate the provided datetime format
     if let Err(e) = std::panic::catch_unwind(|| {
-        let _ = chrono::Local::now().format(&args.log_datetime_format).to_string();
+        let _ = Local::now().format(&args.log_datetime_format).to_string();
     }) {
         anyhow::bail!("Invalid datetime format string '{}': {e:?}", args.log_datetime_format);
     }

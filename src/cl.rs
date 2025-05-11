@@ -101,9 +101,9 @@ pub(crate) struct Args {
     /// Format for timestamps in logs
     #[arg(
         long,
-        env = "LOG_DATETIME_FORMAT",
         default_value = "%d.%m.%Y %H:%M:%S",
-        help = "Format string for timestamps in logs, e.g., '%Y-%m-%d %H:%M:%S'"
+        help = "Format string for timestamps in logs",
+        env = "LOG_DATETIME_FORMAT"
     )]
     pub log_datetime_format: String,
 
