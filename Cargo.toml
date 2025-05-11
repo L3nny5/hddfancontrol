@@ -18,7 +18,7 @@ codegen-units = 1
 [dependencies]
 anyhow = { version = "1.0.98", default-features = false, features = ["std", "backtrace"] }
 backoff = { version = "0.4.0", default-features = false }
-byte-unit = { version = "4.0.19", default-features = false }
+byte-unit = { version = "5.1.2", default-features = false }
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
 clap = { version = "4.5.37", default-features = false, features = ["derive", "env", "std", "color", "help", "usage", "error-context", "suggestions"] }
 clap_mangen = { version = "0.2.26", default-features = false, optional = true }
