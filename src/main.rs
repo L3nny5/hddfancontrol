@@ -140,19 +140,11 @@ fn main() -> anyhow::Result<()> {
                 logger = logger
                     .log_to_file(
                         FileSpec::default()
-                            .directory(
-                                log_file
-                                    .parent()
-                                    .unwrap_or(Path::new(".")),
-                            )
-                            .basename(
-                                log_file
-                                    .file_name()
-                                    .unwrap_or_default()
-                                    .to_string_lossy(),
-                            )
+                            .directory(log_file.parent().unwrap_or(Path::new(".")))
+                            .basename(log_file.file_stem().unwrap_or_default().to_string_lossy())
+                            .suffix(log_file.extension().unwrap_or_default().to_string_lossy())
                             .suppress_timestamp()
-                            .discriminant(String::new()),
+                            .discriminant("")
                     )
                     .rotate(
                         Criterion::Size(log_max_size_bytes),
