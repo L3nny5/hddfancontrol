@@ -98,6 +98,15 @@ pub(crate) struct Args {
     #[arg(short, default_value_t = log::Level::Info)]
     pub verbosity: log::Level,
 
+    /// Format for timestamps in logs
+    #[arg(
+        long,
+        env = "LOG_DATETIME_FORMAT",
+        default_value = "%d.%m.%Y %H:%M:%S",
+        help = "Format string for timestamps in logs, e.g., '%Y-%m-%d %H:%M:%S'"
+    )]
+    pub log_datetime_format: String,
+
     /// Main action
     #[command(subcommand)]
     pub command: Command,

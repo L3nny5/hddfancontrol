@@ -60,21 +60,29 @@ fn main() -> anyhow::Result<()> {
     // Parse cl args
     let args = cl::Args::parse();
 
+   // Validate the provided datetime format
+    if let Err(e) = std::panic::catch_unwind(|| {
+        let _ = chrono::Local::now().format(&args.log_datetime_format).to_string();
+    }) {
+        anyhow::bail!("Invalid datetime format string '{}': {e:?}", args.log_datetime_format);
+    }
+
     // Init logger
     // simple_logger::init_with_level(args.verbosity).context("Failed to init logger")?;
     // added for logging with timestamp
+    let datetime_format = args.log_datetime_format.clone();
     Builder::new()
-    .format(|buf, record| {
-        writeln!(
-            buf,
-            "[{}] [{}] {}",
-            Local::now().format("%d.%m.%Y %H:%M:%S"),
-            record.level(),
-            record.args()
-        )
-    })
-    .filter_level(args.verbosity.to_level_filter())
-    .init();
+        .format(move |buf, record| {
+            writeln!(
+                buf,
+                "[{}] [{}] {}",
+                Local::now().format(&datetime_format),
+                record.level(),
+                record.args()
+            )
+        })
+        .filter_level(args.verbosity.to_level_filter())
+        .init();
 
     match args.command {
         cl::Command::PwmTest { pwm } => {
