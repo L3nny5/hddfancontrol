@@ -9,7 +9,6 @@ use std::{
     io::Write,
     ops::Range,
     path::PathBuf,
-    str::FromStr,
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
@@ -19,14 +18,13 @@ use std::{
 };
 
 use anyhow::Context as _;
-use byte_unit::{Byte, ByteUnit};
+use byte_unit::Byte;
 use chrono::Local;
 use clap::Parser as _;
 use device::Hwmon;
 use exit::ExitHook;
 use fan::Speed;
-use flexi_logger::{Duplicate, Logger, Criterion, Naming, Cleanup};
-use flexi_logger::FileSpec;
+use flexi_logger::{Logger, FileSpec, Criterion, Naming, Cleanup, Duplicate};
 use once_cell::sync::OnceCell;
 use probe::Temp;
 
@@ -74,11 +72,10 @@ fn main() -> anyhow::Result<()> {
     }
 
     // Validate log-max-size string and convert to bytes
-    let log_max_size_bytes = match humantime::parse_duration(&args.log_max_size) {
-        Ok(dur) => dur.as_secs(),
-        Err(_) => Byte::from_str(&args.log_max_size)
-            .map(|b| b.get_bytes_through(ByteUnit::B) as u64)
-            .with_context(|| format!("Invalid value for --log-max-size: {}", args.log_max_size))?,
+    let log_max_size_bytes = {
+        let byte_val = Byte::parse_str(&args.log_max_size, true)
+            .with_context(|| format!("Invalid value for --log-max-size: {}", args.log_max_size))?;
+        byte_val.as_u64()
     };
 
     // Init logger
