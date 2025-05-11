@@ -18,7 +18,6 @@ use std::{
 
 use std::io::Write;
 use std::path::Path;
-use std::ffi::OsStr;
 
 use anyhow::Context as _;
 use byte_unit::Byte;
