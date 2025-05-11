@@ -25,9 +25,12 @@ use clap::Parser as _;
 use device::Hwmon;
 use exit::ExitHook;
 use fan::Speed;
-use flexi_logger::{Duplicate, Logger, Criterion, Naming, Cleanup, Age};
+use flexi_logger::{Duplicate, Logger, Criterion, Naming, Cleanup};
 use flexi_logger::FileSpec;
+use once_cell::sync::OnceCell;
 use probe::Temp;
+
+static FORMAT_STRING: OnceCell<String> = OnceCell::new();
 
 mod cl;
 mod device;
@@ -74,7 +77,7 @@ fn main() -> anyhow::Result<()> {
     let log_max_size_bytes = match humantime::parse_duration(&args.log_max_size) {
         Ok(dur) => dur.as_secs(),
         Err(_) => Byte::from_str(&args.log_max_size)
-            .map(|b| b.get_bytes() as u64)
+            .map(|b| b.get_bytes_as_u64())
             .with_context(|| format!("Invalid value for --log-max-size: {}", args.log_max_size))?,
     };
 
@@ -82,20 +85,23 @@ fn main() -> anyhow::Result<()> {
     // simple_logger::init_with_level(args.verbosity).context("Failed to init logger")?;
     // added for logging with timestamp
     let datetime_format = args.log_datetime_format.clone();
-    fn make_format_fn(format: String) -> impl Fn(&mut dyn std::io::Write, &mut flexi_logger::DeferredNow, &log::Record) -> std::io::Result<()> + Send + Sync + 'static {
-        move |writer, now, record| {
-            writeln!(
-                writer,
-                "[{}] [{}] {}",
-                now.format(&format),
-                record.level(),
-                record.args()
-            )
-        }
+    FORMAT_STRING.set(datetime_format.clone()).unwrap();
+    fn my_format(
+        writer: &mut dyn std::io::Write,
+        now: &mut flexi_logger::DeferredNow,
+        record: &log::Record,
+    ) -> std::io::Result<()> {
+        writeln!(
+            writer,
+            "[{}] [{}] {}",
+            now.format(&FORMAT_STRING.get().unwrap()), // wir brauchen gleich `OnceCell`
+            record.level(),
+            record.args()
+        )
     }
 
     let mut logger = Logger::try_with_str(args.verbosity.to_string())?
-        .format(make_format_fn(datetime_format))
+        .format(my_format)
         .duplicate_to_stdout(Duplicate::All);
 
 
