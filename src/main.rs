@@ -6,6 +6,7 @@
 )]
 
 use std::{
+    io::Write, // added
     ops::Range,
     path::PathBuf,
     sync::{
@@ -22,6 +23,8 @@ use device::Hwmon;
 use exit::ExitHook;
 use fan::Speed;
 use probe::Temp;
+use chrono::Local;           // added for timestamped logs
+use env_logger::Builder;     // added for flexible logger config
 
 mod cl;
 mod device;
@@ -58,7 +61,24 @@ fn main() -> anyhow::Result<()> {
     let args = cl::Args::parse();
 
     // Init logger
-    simple_logger::init_with_level(args.verbosity).context("Failed to init logger")?;
+    // simple_logger::init_with_level(args.verbosity).context("Failed to init logger")?;
+    // added for logging with timestamp
+    Builder::new()
+    .format(|buf, record| {
+        use env_logger::fmt::Color;
+        let mut style = buf.style();
+        style.set_color(Color::Green).set_bold(true);
+
+        writeln!(
+            buf,
+            "[{}] [{}] {}",
+            Local::now().format("%d.%m.%Y %H:%M:%S"),
+            style.value(record.level()),
+            record.args()
+        )
+    })
+    .filter_level(args.verbosity.to_level_filter())
+    .init();
 
     match args.command {
         cl::Command::PwmTest { pwm } => {
