@@ -136,19 +136,23 @@ fn main() -> anyhow::Result<()> {
                 .format(my_format)
                 .duplicate_to_stdout(Duplicate::All);
 
-            if let Some(log_file) = log_file.as_ref() {
-                logger = logger
-                    .log_to_file(
-                        FileSpec::default()
-                            .directory(log_file.parent().unwrap_or(Path::new(".")))
-                            .basename(log_file.file_stem().unwrap_or_default().to_string_lossy())
-                            .suffix(log_file.extension().unwrap_or_default().to_string_lossy())
-                            .suppress_timestamp()
-                            .discriminant("")
+            if let Some(log_file) = args.log_file.as_ref() {
+                let file_spec = FileSpec::default()
+                    .directory(log_file.parent().unwrap_or(Path::new(".")))
+                    .basename(
+                        log_file
+                            .file_stem()
+                            .unwrap_or_default()
+                            .to_string_lossy(),
                     )
+                    .suffix("log")          
+                    .suppress_timestamp();
+
+                logger = logger
+                    .log_to_file(file_spec)
                     .rotate(
                         Criterion::Size(log_max_size_bytes),
-                        Naming::Numbers,
+                        Naming::Timestamps,
                         Cleanup::KeepLogFiles(log_retain),
                     );
             }
