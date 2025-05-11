@@ -73,62 +73,6 @@ fn main() -> anyhow::Result<()> {
         anyhow::bail!("Invalid datetime format string '{}': {e:?}", args.log_datetime_format);
     }
 
-    // Validate log-max-size string and convert to bytes
-    let log_max_size_bytes = {
-        let byte_val = Byte::parse_str(&args.log_max_size, true)
-            .with_context(|| format!("Invalid value for --log-max-size: {}", args.log_max_size))?;
-        byte_val.as_u64()
-    };
-
-    // Init logger
-    // simple_logger::init_with_level(args.verbosity).context("Failed to init logger")?;
-    // added for logging with timestamp
-    let datetime_format = args.log_datetime_format.clone();
-    FORMAT_STRING.set(datetime_format.clone()).unwrap();
-    fn my_format(
-        writer: &mut dyn Write,
-        now: &mut flexi_logger::DeferredNow,
-        record: &log::Record,
-    ) -> std::io::Result<()> {
-        writeln!(
-            writer,
-            "[{}] [{}] {}",
-            now.format(&FORMAT_STRING.get().unwrap()), // wir brauchen gleich `OnceCell`
-            record.level(),
-            record.args()
-        )
-    }
-
-    let mut logger = Logger::try_with_str(args.verbosity.to_string())?
-        .format(my_format)
-        .duplicate_to_stdout(Duplicate::All);
-
-
-    if let Some(log_file) = args.log_file.as_ref() {
-        logger = logger
-            .log_to_file(
-                FileSpec::default()
-                    .directory(
-                        log_file
-                            .parent()
-                            .unwrap_or(Path::new(".")),
-                    )
-                    .basename(
-                        log_file
-                            .file_name()
-                            .unwrap_or_default()
-                            .to_string_lossy(),
-                    ),
-            )
-            .rotate(
-                Criterion::Size(log_max_size_bytes),
-                Naming::Numbers,
-                Cleanup::KeepLogFiles(args.log_retain),
-            );
-    }
-
-    logger.start()?;
-
     match args.command {
         cl::Command::PwmTest { pwm } => {
             for pwm_path in &pwm {
@@ -168,6 +112,55 @@ fn main() -> anyhow::Result<()> {
             log_retain,
             log_datetime_format,
         } => {
+            // Logging konfigurieren
+            let log_max_size_bytes = Byte::parse_str(&log_max_size, true)
+                .with_context(|| format!("Invalid value for --log-max-size: {}", log_max_size))?
+                .as_u64();
+
+            FORMAT_STRING.set(log_datetime_format.clone()).unwrap();
+            fn my_format(
+                writer: &mut dyn Write,
+                now: &mut flexi_logger::DeferredNow,
+                record: &log::Record,
+            ) -> std::io::Result<()> {
+                writeln!(
+                    writer,
+                    "[{}] [{}] {}",
+                    now.format(&FORMAT_STRING.get().unwrap()),
+                    record.level(),
+                    record.args()
+                )
+            }
+
+            let mut logger = Logger::try_with_str(args.verbosity.to_string())?
+                .format(my_format)
+                .duplicate_to_stdout(Duplicate::All);
+
+            if let Some(log_file) = log_file.as_ref() {
+                logger = logger
+                    .log_to_file(
+                        FileSpec::default()
+                            .directory(
+                                log_file
+                                    .parent()
+                                    .unwrap_or(Path::new(".")),
+                            )
+                            .basename(
+                                log_file
+                                    .file_name()
+                                    .unwrap_or_default()
+                                    .to_string_lossy(),
+                            ),
+                    )
+                    .rotate(
+                        Criterion::Size(log_max_size_bytes),
+                        Naming::Numbers,
+                        Cleanup::KeepLogFiles(log_retain),
+                    );
+            }
+
+            logger.start()?;
+
             #[expect(clippy::indexing_slicing)] // guaranteed by clap's numl_args
             let drive_temp_range = Range {
                 start: drive_temp_range[0],
