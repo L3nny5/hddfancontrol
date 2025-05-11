@@ -19,7 +19,7 @@ use std::{
 };
 
 use anyhow::Context as _;
-use byte_unit::Byte;
+use byte_unit::r#byte::Byte;
 use chrono::Local;
 use clap::Parser as _;
 use device::Hwmon;
@@ -71,13 +71,12 @@ fn main() -> anyhow::Result<()> {
     }
 
     // Validate log-max-size string and convert to bytes
-    let log_max_size_bytes = humantime::parse_duration(&args.log_max_size)
-        .map(|dur| dur.as_secs())
-        .map_err(|_| {
-            byte_unit::Byte::from_str(&args.log_max_size)
-                .map(|b| b.get_bytes() as u64)
-                .map_err(|e| anyhow::anyhow!("Invalid value for --log-max-size: {e:?}"))
-        })??;
+    let log_max_size_bytes = match humantime::parse_duration(&args.log_max_size) {
+        Ok(dur) => dur.as_secs(),
+        Err(_) => Byte::from_str(&args.log_max_size)
+            .map(|b| b.get_bytes() as u64)
+            .with_context(|| format!("Invalid value for --log-max-size: {}", args.log_max_size))?,
+    };
 
     // Init logger
     // simple_logger::init_with_level(args.verbosity).context("Failed to init logger")?;
