@@ -19,7 +19,7 @@ use std::{
 };
 
 use anyhow::Context as _;
-use byte-unit::Byte;
+use byte_unit::Byte;
 use chrono::Local;
 use clap::Parser as _;
 use device::Hwmon;
