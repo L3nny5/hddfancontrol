@@ -125,7 +125,7 @@ fn main() -> anyhow::Result<()> {
             ) -> std::io::Result<()> {
                 write!(
                     writer,
-                    "[{}] [{}] {}",
+                    "[{}] [{}] {}\n",
                     now.format(&FORMAT_STRING.get().unwrap()),
                     record.level(),
                     record.args()
@@ -150,7 +150,8 @@ fn main() -> anyhow::Result<()> {
                                     .file_name()
                                     .unwrap_or_default()
                                     .to_string_lossy(),
-                            ),
+                            )
+                            .suppress_timestamp()
                     )
                     .rotate(
                         Criterion::Size(log_max_size_bytes),
