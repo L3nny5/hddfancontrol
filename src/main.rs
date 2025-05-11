@@ -125,7 +125,7 @@ fn main() -> anyhow::Result<()> {
             ) -> std::io::Result<()> {
                 write!(
                     writer,
-                    "[{}] [{}] {}\n",
+                    "[{}] [{}] {}",
                     now.format(&FORMAT_STRING.get().unwrap()),
                     record.level(),
                     record.args()
