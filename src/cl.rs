@@ -227,7 +227,7 @@ pub(crate) enum Command {
         restore_fan_settings: bool,
 
         /// Optional path to write logs to
-        #[arg(long)]
+        #[arg(long, env = "LOG_FILEPATH")]
         log_file: Option<PathBuf>,
 
         /// Max size of a single log file (e.g., "10MB" or "1h")
