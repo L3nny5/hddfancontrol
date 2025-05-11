@@ -163,6 +163,10 @@ fn main() -> anyhow::Result<()> {
             interval,
             hwmons,
             restore_fan_settings,
+            log_file,
+            log_max_size,
+            log_retain,
+            log_datetime_format,
         } => {
             #[expect(clippy::indexing_slicing)] // guaranteed by clap's numl_args
             let drive_temp_range = Range {
