@@ -17,7 +17,6 @@ use std::{
 };
 
 use std::io::Write;
-use std::path::Path;
 use std::fs;
 
 use anyhow::Context as _;
@@ -153,7 +152,7 @@ fn main() -> anyhow::Result<()> {
             //    - write into `logs/` with rotation
             //    - duplicate all levels to stdout
             //    - create a stable symlink in the parent dir
-            let mut logger = Logger::try_with_str(args.verbosity.to_string())?
+            let logger = Logger::try_with_str(args.verbosity.to_string())?
                 .format(my_format)
                 .log_to_file(file_spec)
                 .rotate(
@@ -166,23 +165,29 @@ fn main() -> anyhow::Result<()> {
             // start the logger
             logger.start()?;
 
-            // manually create (or update) the symlink:
-            let link_path    = log_dir.join("hddfancontrol.log");
-            let target_path  = logs_dir.join("log_rCURRENT.log");
+            // link_path: /var/log/hddfancontrol/hddfancontrol.log
+            let link_path   = args.log_dir.join("hddfancontrol.log");
+            // target_path: /var/log/hddfancontrol/logs/log_rCURRENT.log
+            let target_path = logs_dir.join("log_rCURRENT.log");
 
-            // if a previous link or file exists, remove it
+            // remove existing link or stale file if present
             if link_path.exists() {
-                std::fs::remove_file(&link_path)
+                fs::remove_file(&link_path)
                     .with_context(|| format!("Failed to remove old symlink {}", link_path.display()))?;
             }
 
             // create a new symlink `hddfancontrol.log` → `logs/log_rCURRENT.log`
             symlink(&target_path, &link_path)
-                .with_context(|| format!(
-                    "Failed to create symlink {} → {}",
-                    link_path.display(),
-                    target_path.display()
-                ))?;
+                .with_context(|| {
+                    format!(
+                        "Failed to create symlink {} -> {}",
+                        link_path.display(),
+                        target_path.display()
+                    )
+                })?;
+
+            // DEBUG: confirm symlink creation
+            println!("Symlink created: {} -> {}", link_path.display(), target_path.display());
 
             #[expect(clippy::indexing_slicing)] // guaranteed by clap's numl_args
             let drive_temp_range = Range {
