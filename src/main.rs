@@ -29,6 +29,7 @@ use exit::ExitHook;
 use fan::Speed;
 use flexi_logger::{Logger, FileSpec, Criterion, Naming, Cleanup, Duplicate};
 use once_cell::sync::OnceCell;
+use std::os::unix::fs::symlink;
 use probe::Temp;
 
 static FORMAT_STRING: OnceCell<String> = OnceCell::new();
@@ -136,19 +137,19 @@ fn main() -> anyhow::Result<()> {
                 )
             }
 
-            // 1) Ensure `logs/` subdirectory exists
+            // Ensure `logs/` subdirectory exists
             let logs_dir = log_dir.join("logs");
             fs::create_dir_all(&logs_dir)
                 .with_context(|| format!("Failed to create logs directory {}", logs_dir.display()))?;
 
-            // 2) Prepare FileSpec for rotated files in `logs/`
+            // Prepare FileSpec for rotated files in `logs/`
             let file_spec = FileSpec::default()
                 .directory(&logs_dir)
                 .basename("log")      // produces files like log_rCURRENT.log, log_r00001.log, ...
                 .suffix("log")
                 .suppress_timestamp();
 
-            // 3) Build and start the logger:
+            // Build and start the logger:
             //    - write into `logs/` with rotation
             //    - duplicate all levels to stdout
             //    - create a stable symlink in the parent dir
@@ -160,10 +161,28 @@ fn main() -> anyhow::Result<()> {
                     Naming::Numbers,
                     Cleanup::KeepLogFiles(log_retain),
                 )
-                .duplicate_to_stdout(Duplicate::All)
-                .create_symlink(log_dir.join("hddfancontrol.log"));
+                .duplicate_to_stdout(Duplicate::All);
 
+            // start the logger
             logger.start()?;
+
+            // manually create (or update) the symlink:
+            let link_path    = log_dir.join("hddfancontrol.log");
+            let target_path  = logs_dir.join("log_rCURRENT.log");
+
+            // if a previous link or file exists, remove it
+            if link_path.exists() {
+                std::fs::remove_file(&link_path)
+                    .with_context(|| format!("Failed to remove old symlink {}", link_path.display()))?;
+            }
+
+            // create a new symlink `hddfancontrol.log` → `logs/log_rCURRENT.log`
+            symlink(&target_path, &link_path)
+                .with_context(|| format!(
+                    "Failed to create symlink {} → {}",
+                    link_path.display(),
+                    target_path.display()
+                ))?;
 
             #[expect(clippy::indexing_slicing)] // guaranteed by clap's numl_args
             let drive_temp_range = Range {
