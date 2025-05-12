@@ -108,8 +108,8 @@ pub(crate) struct Args {
     pub log_datetime_format: String,
 
     /// If set, logs will also be written to this file (rotated when size exceeded)
-    #[arg(long, help = "Optional path to a logfile")]
-    pub log_file: Option<PathBuf>,
+    #[arg(long, env = "LOG_DIR", default_value = ".")]
+    pub log_dir: PathBuf,
 
     /// Max size of each log file before rotating, e.g. "10MB", "500KB"
     #[arg(long, default_value = "10MB", help = "Maximum logfile size before rotation")]

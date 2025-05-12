@@ -18,6 +18,7 @@ use std::{
 
 use std::io::Write;
 use std::fs;
+use std::os::unix::fs::symlink;
 
 use anyhow::Context as _;
 use byte_unit::Byte;
@@ -28,7 +29,6 @@ use exit::ExitHook;
 use fan::Speed;
 use flexi_logger::{Logger, FileSpec, Criterion, Naming, Cleanup, Duplicate};
 use once_cell::sync::OnceCell;
-use std::os::unix::fs::symlink;
 use probe::Temp;
 
 static FORMAT_STRING: OnceCell<String> = OnceCell::new();
@@ -165,8 +165,8 @@ fn main() -> anyhow::Result<()> {
             // start the logger
             logger.start()?;
 
-            // link_path: /var/log/hddfancontrol/hddfancontrol.log
-            let link_path   = args.log_dir.join("hddfancontrol.log");
+            // use the local `log_dir` you destructured above
+            let link_path   = log_dir.join("hddfancontrol.log");
             // target_path: /var/log/hddfancontrol/logs/log_rCURRENT.log
             let target_path = logs_dir.join("log_rCURRENT.log");
 
