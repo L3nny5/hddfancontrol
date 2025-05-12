@@ -18,6 +18,7 @@ use std::{
 
 use std::io::Write;
 use std::path::Path;
+use std::fs;
 
 use anyhow::Context as _;
 use byte_unit::Byte;
@@ -107,17 +108,20 @@ fn main() -> anyhow::Result<()> {
             interval,
             hwmons,
             restore_fan_settings,
-            log_file,
+            log_dir,
             log_max_size,
             log_retain,
             log_datetime_format,
         } => {
-            // Logging konfigurieren
+            // Configure logging
             let log_max_size_bytes = Byte::parse_str(&log_max_size, true)
                 .with_context(|| format!("Invalid value for --log-max-size: {}", log_max_size))?
                 .as_u64();
 
+            // Set global timestamp format
             FORMAT_STRING.set(log_datetime_format.clone()).unwrap();
+
+            // Custom log formatter
             fn my_format(
                 writer: &mut dyn Write,
                 now: &mut flexi_logger::DeferredNow,
@@ -132,24 +136,32 @@ fn main() -> anyhow::Result<()> {
                 )
             }
 
+            // 1) Ensure `logs/` subdirectory exists
+            let logs_dir = log_dir.join("logs");
+            fs::create_dir_all(&logs_dir)
+                .with_context(|| format!("Failed to create logs directory {}", logs_dir.display()))?;
+
+            // 2) Prepare FileSpec for rotated files in `logs/`
+            let file_spec = FileSpec::default()
+                .directory(&logs_dir)
+                .basename("log")      // produces files like log_rCURRENT.log, log_r00001.log, ...
+                .suffix("log")
+                .suppress_timestamp();
+
+            // 3) Build and start the logger:
+            //    - write into `logs/` with rotation
+            //    - duplicate all levels to stdout
+            //    - create a stable symlink in the parent dir
             let mut logger = Logger::try_with_str(args.verbosity.to_string())?
                 .format(my_format)
-                .duplicate_to_stdout(Duplicate::All);
-
-            if let Some(log_file) = log_file {
-                let file_spec = FileSpec::default()
-                    .directory(log_file.parent().unwrap_or(Path::new(".")))
-                    .basename(log_file.file_stem().unwrap_or_default().to_string_lossy())
-                    .suffix("log")          
-                    .suppress_timestamp();
-                logger = logger
-                    .log_to_file(file_spec)
-                    .rotate(
-                        Criterion::Size(log_max_size_bytes),
-                        Naming::Numbers,
-                        Cleanup::KeepLogFiles(log_retain),
-                    );
-            }
+                .log_to_file(file_spec)
+                .rotate(
+                    Criterion::Size(log_max_size_bytes),
+                    Naming::Numbers,
+                    Cleanup::KeepLogFiles(log_retain),
+                )
+                .duplicate_to_stdout(Duplicate::All)
+                .create_symlink(log_dir.join("hddfancontrol.log"));
 
             logger.start()?;
 
